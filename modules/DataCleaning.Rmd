@@ -1,0 +1,76 @@
+---
+title: "Cleanup Beer Data"
+output:
+  html_notebook: default
+  github_document: default
+---
+
+## Imports
+
+```{r}
+library(tidytext)
+library(tidyverse)
+library(stringr)
+```
+
+## Load in Data
+
+```{r}
+beer_data <- read_csv("../data/BeerData.csv")
+```
+
+## Data Cleaning
+
+Some of the columns in the dataset that are meant to be numeric contain non-numeric characters like ">" or "TBD". I need to replace these characters and make the columns numeric.
+
+```{r}
+beer_data <- beer_data %>%
+  mutate(ABV = replace_na(as.numeric(str_replace(ABV, pattern = "[^0-9.-]",replacement = "")),0),
+         Fiber_grams = replace_na(as.numeric(str_replace(Fiber_grams, pattern = "[^0-9.-]",replacement = "")),0),
+         Sugars_grams = replace_na(as.numeric(str_replace(Sugars_grams, pattern = "[^0-9.-]",replacement = "")),0),
+         Protein_grams = replace_na(as.numeric(str_replace(Protein_grams, pattern = "[^0-9.-]",replacement = "")),0)
+         )
+str(beer_data)
+```
+
+The ingredients column in the beer dataset is possibly going to provide the most information when it comes to the clustering model that I'm going to build with the data. For the first run through, I'm going to see how many unique values are in the ingredients column - I'm going to create a dummy column for each ingredient, but might limit to the top 20 or so, depending on how many there are.
+
+
+```{r}
+ingredients_dummies <- beer_data %>%
+  select(Ingredients) %>%
+  mutate(Ingredients = str_to_lower(Ingredients)) %>%
+  separate_rows(Ingredients, sep = ",") %>%
+  mutate(val = 1,
+         Ingredients = str_trim(Ingredients, side = c("both"))) %>%
+  group_by(Ingredients) %>%
+  summarise(num = sum(val)) %>%
+  arrange(num)
+```
+
+Are there ingredients that you can combine?
+
+
+
+After Analysis: Join dummies back to beer_df
+
+```{r}
+ingredients_dummies <- beer_data %>%
+  select(Ingredients) %>%
+  mutate(rn = row_number()) %>% 
+  separate_rows(Ingredients, sep = ",") %>%
+  mutate(i1 = 1) %>% 
+  pivot_wider(names_from = Ingredients, names_prefix = "ing_", values_from = i1, values_fill = list(i1 = 0)) %>%
+  select(-rn)
+```
+
+
+
+
+
+
+
+
+
+
+
