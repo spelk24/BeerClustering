@@ -9,8 +9,8 @@ https://www.molsoncoors.com/
 For detailed data, please see [MolsonCoors Nutrition PDF](data/MolsonCoors_Nutritional_Information.pdf)
 
 ## Current TODO
-- [ ] Build ingredients categories to group similar words
-- [ ] Try out PCA on the data for initial analysis
+- [x] Build ingredients categories to group similar words
+- [x] Try out PCA on the data for initial analysis
 - [ ] EDA and feature filtering
 - [ ] Clustering Algorithms
   - [ ] k-Means
