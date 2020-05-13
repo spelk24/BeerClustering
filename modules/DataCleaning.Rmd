@@ -37,7 +37,7 @@ The ingredients column in the beer dataset is possibly going to provide the most
 
 
 ```{r}
-ingredients_dummies <- beer_data %>%
+ingredients_count <- beer_data %>%
   select(Ingredients) %>%
   mutate(Ingredients = str_to_lower(Ingredients)) %>%
   separate_rows(Ingredients, sep = ",") %>%
@@ -48,22 +48,31 @@ ingredients_dummies <- beer_data %>%
   arrange(num)
 ```
 
-Are there ingredients that you can combine?
-
-
+Are there ingredients that you can combine? Do this manually in excel until you are comfortable with the data.
+* 163 total ingredients
+* 73 with > 1
 
 After Analysis: Join dummies back to beer_df
 
 ```{r}
-ingredients_dummies <- beer_data %>%
+beer_dummies <- beer_data %>%
   select(Ingredients) %>%
   mutate(rn = row_number()) %>% 
   separate_rows(Ingredients, sep = ",") %>%
-  mutate(i1 = 1) %>% 
-  pivot_wider(names_from = Ingredients, names_prefix = "ing_", values_from = i1, values_fill = list(i1 = 0)) %>%
+  mutate(val = 1,
+         Ingredients = str_trim(Ingredients, side = c("both"))) %>% 
+  pivot_wider(names_from = Ingredients, names_prefix = "Ingr_", values_from = val, values_fill = list(val = 0)) %>%
   select(-rn)
+
+final_beer_data <- cbind(beer_data, beer_dummies)
+
 ```
 
+## Export New Data
+
+```{r}
+write.csv(final_beer_data,"../data/CleanedBeerData.csv",row.names = FALSE)
+```
 
 
 
