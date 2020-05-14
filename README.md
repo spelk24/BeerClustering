@@ -18,3 +18,11 @@ For detailed data, please see [MolsonCoors Nutrition PDF](data/MolsonCoors_Nutri
   - [ ] tSNE
   - [ ] UMAP
 - [ ] Build Shiny App
+
+
+## Ideas for Clustering
+1. Kmeans labels --> Lower Dimensional representation that includes the kmeans labal
+- KNN using cluster labels as response var
+- tSNE, UMAP, PCA plot
+
+2. Recommender System research
