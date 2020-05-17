@@ -1,0 +1,111 @@
+---
+title: "Beer Recommender System"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(tidyverse)
+library(caret)
+library(ggthemes)
+library(ggtext)
+library(tidymodels)
+library(tidyr)
+library(Rtsne)
+library(plotly)
+library(StatMatch)
+library(cluster)
+```
+
+## Data
+
+```{r echo=FALSE}
+beer_data <- read_csv("data/CleanedBeerData.csv")
+```
+
+## Data Processing Steps
+
+- Remove numeric variables with zero/low variance
+
+```{r}
+beer_full <- beer_data %>%
+  select(!c("Calories_from_fat","Cholesterol_mg","Fat_grams","Saturated_fat_grams","Trans_fat_grams","Fiber_grams"))
+```
+
+- Run clustering on the ingredients features (use gower distance)
+
+## Partitioning around Medoids
+
+```{r}
+beer_ingredients <- beer_full %>% select(contains("ingr_"))
+beer_ingr_gower <- dist(beer_ingredients, method = "gower")
+```
+
+```{r}
+# Gower Dist - Partioning Around Medoids
+avg_width = c()
+for (i in 1:26) {
+  pam_gower <- pam(x = beer_ingr_gower, k = i, diss = TRUE)
+  avg_width =  c(avg_width,pam_gower[["silinfo"]][["avg.width"]]) # append avg width for each k
+}
+
+ggplot() +
+  geom_line(aes(x = c(1:25), y= avg_width)) +
+  geom_point() +
+  labs(title = "K vs Avg Width") +
+  theme_minimal() 
+```
+
+- Use k = 6 and add cluster labels to beer data
+
+```{r}
+pam_gower <- pam(x = beer_ingr_gower, k = 6, diss = TRUE, cluster.only = TRUE)
+beer_data_with_clusters <- beer_full %>%
+  select(!contains("ingr")) %>%
+  mutate(Ingr_Cluster = as.factor(pam_gower))
+```
+
+- tSNE on new data
+
+```{r}
+## Algo
+tsne <- Rtsne(beer_data_with_clusters,
+              check_duplicates = FALSE,
+              pca = TRUE,
+              pca_center = TRUE,
+              pca_scale = TRUE,
+              dims = 2,
+              perplexity=50,
+              verbose=TRUE,
+              max_iter = 1000)
+
+# Plotting t-SNE
+tsne_plotting_data <- cbind(beer_data_with_clusters %>% select("Brand","Brand_Style","ABV","Calories"),tsne$Y)
+gg_tsne <- ggplot(data = tsne_plotting_data) +
+  geom_point(aes(x = `1`, y = `2`, text = paste("Beer:",Brand,"<br>","Style:",Brand_Style)),
+             color = "#2b8cbe",
+             size = 2,
+             alpha = .7) +
+  labs(title = "tSNE 2-D Respresentation of Beer Data") +
+  theme(plot.title = element_markdown(size = 14),
+        plot.subtitle = element_markdown(size = 10),
+        plot.caption = element_markdown(),
+        legend.position = "top",
+        panel.background = element_rect(fill = "white", colour = "white"),
+        panel.grid.major = element_line(colour = "#f0f0f0",size = .1))
+
+ggplotly(gg_tsne, tooltip = "text") %>%
+            config(displayModeBar = F)
+```
+
+
+
+
+
+
+
