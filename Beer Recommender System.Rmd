@@ -20,6 +20,7 @@ library(Rtsne)
 library(plotly)
 library(StatMatch)
 library(cluster)
+library(uwot)
 ```
 
 ## Data
@@ -70,40 +71,44 @@ beer_data_with_clusters <- beer_full %>%
   mutate(Ingr_Cluster = as.factor(pam_gower))
 ```
 
-- tSNE on new data
+
+## UMAP
+
+- Parameters: https://rdrr.io/cran/uwot/man/umap.html
+
 
 ```{r}
 ## Algo
-tsne <- Rtsne(beer_data_with_clusters,
-              check_duplicates = FALSE,
-              pca = TRUE,
-              pca_center = TRUE,
-              pca_scale = TRUE,
-              dims = 2,
-              perplexity=50,
-              verbose=TRUE,
-              max_iter = 1000)
+umap_data_input <- beer_full %>% 
+  select(!contains("Brand")) %>%
+  select(!Ingredients)
 
-# Plotting t-SNE
-tsne_plotting_data <- cbind(beer_data_with_clusters %>% select("Brand","Brand_Style","ABV","Calories"),tsne$Y)
-gg_tsne <- ggplot(data = tsne_plotting_data) +
-  geom_point(aes(x = `1`, y = `2`, text = paste("Beer:",Brand,"<br>","Style:",Brand_Style)),
-             color = "#2b8cbe",
-             size = 2,
-             alpha = .7) +
-  labs(title = "tSNE 2-D Respresentation of Beer Data") +
+umap_output <- uwot::umap(umap_data_input,
+                       metric = "euclidean",
+                       n_neighbors = 3,
+                       n_components = 2,
+                       min_dist = .01,
+                       scale = TRUE)
+
+# Plotting UMAP
+umap_plotting_data <- cbind(beer_full,umap_output)
+gg_umap <- ggplot(data = umap_plotting_data,aes(x = `1`,
+                                                y = `2`,
+                                                text = paste0(Brand,"<br>",Brand_Style,"<br>","ABV: ",ABV))) +
+  geom_point(colour = "#fe9929",
+             alpha = .6) +
+  labs(title = "UMAP 2-D Respresentation of Beer Data") +
   theme(plot.title = element_markdown(size = 14),
         plot.subtitle = element_markdown(size = 10),
         plot.caption = element_markdown(),
         legend.position = "top",
         panel.background = element_rect(fill = "white", colour = "white"),
-        panel.grid.major = element_line(colour = "#f0f0f0",size = .1))
+        panel.grid.major = element_line(colour = "#f0f0f0",size = .1)) + 
+  geom_jitter(width = 1.5, height = 1.5,color = "#fe9929",alpha = .6)
 
-ggplotly(gg_tsne, tooltip = "text") %>%
+ggplotly(gg_umap, tooltip = "text") %>%
             config(displayModeBar = F)
 ```
-
-
 
 
 
