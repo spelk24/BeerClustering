@@ -121,12 +121,13 @@ ggplotly(gg_umap, tooltip = "text") %>%
 ```{r}
 # Extract Nearest Neigbor Data
 beer_nn_data <- cbind(beer_data %>% select("Brand","Brand_Style"),umap_output$nn)
-umap_output$nn
-pivot_longer(beer_nn_data,
-             cols = starts_with("euclidean."),
-             names_to = c("Neighbor_IDX","Dist"),
-             names_pattern = "????")
 
+beer_nn_data <- beer_nn_data %>%
+  pivot_longer(starts_with("euclidean"),
+               names_to = c(".value", "set"),
+               names_pattern = "(euclidean\\.[a-z]*\\.)(.)")
+  
+names(beer_nn_data) <- c("Brand","Brand_Style","Neighbor_Rk","Neighbor_Idx","Neighbor_Dist")
 ```
 
 
