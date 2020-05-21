@@ -49,25 +49,27 @@ beer_ingr_gower <- dist(beer_ingredients, method = "gower")
 
 ```{r}
 # Gower Dist - Partioning Around Medoids
+cluster_data_input <- beer_full %>% select(!c("Brand","Brand_Style","Ingredients"))
+cluster_dist_input <- dist(cluster_data_input, method = "gower")
 avg_width = c()
 for (i in 1:26) {
-  pam_gower <- pam(x = beer_ingr_gower, k = i, diss = TRUE)
+  pam_gower <- pam(x = cluster_dist_input, k = i, diss = TRUE)
   avg_width =  c(avg_width,pam_gower[["silinfo"]][["avg.width"]]) # append avg width for each k
 }
 
 ggplot() +
   geom_line(aes(x = c(1:25), y= avg_width)) +
   geom_point() +
-  labs(title = "K vs Avg Width") +
-  theme_minimal() 
+  labs(title = "K vs Avg Width",
+       x = "Clusters",
+       y = "Avg Width") +
+  theme_minimal()
 ```
 
-- Use k = 6 and add cluster labels to beer data
 
 ```{r}
-pam_gower <- pam(x = beer_ingr_gower, k = 6, diss = TRUE, cluster.only = TRUE)
+pam_gower <- pam(x = cluster_dist_input, k = 10, diss = TRUE, cluster.only = TRUE)
 beer_data_with_clusters <- beer_full %>%
-  select(!contains("ingr")) %>%
   mutate(Ingr_Cluster = as.factor(pam_gower))
 ```
 
@@ -79,21 +81,26 @@ beer_data_with_clusters <- beer_full %>%
 
 ```{r}
 ## Algo
-umap_data_input <- beer_full %>% 
+umap_data_input <- beer_data_with_clusters %>% 
   select(!contains("Brand")) %>%
   select(!Ingredients)
 
 umap_output <- uwot::umap(umap_data_input,
-                       metric = "euclidean",
-                       n_neighbors = 3,
-                       n_components = 2,
-                       min_dist = .01,
-                       scale = TRUE)
+                          y = umap_data_input$Ingr_Cluster,
+                          target_weight = .5,
+                          metric = "euclidean",
+                          n_neighbors = 6,
+                          n_components = 2,
+                          spread = .75,
+                          min_dist = .01,
+                          scale = TRUE,
+                          ret_nn = TRUE) #retain the nearest neighbors
 
 # Plotting UMAP
-umap_plotting_data <- cbind(beer_full,umap_output)
+umap_plotting_data <- cbind(beer_data_with_clusters,umap_output$embedding)
 gg_umap <- ggplot(data = umap_plotting_data,aes(x = `1`,
                                                 y = `2`,
+                                                colour = Ingr_Cluster,
                                                 text = paste0(Brand,"<br>",Brand_Style,"<br>","ABV: ",ABV))) +
   geom_point(colour = "#fe9929",
              alpha = .6) +
@@ -104,13 +111,23 @@ gg_umap <- ggplot(data = umap_plotting_data,aes(x = `1`,
         legend.position = "top",
         panel.background = element_rect(fill = "white", colour = "white"),
         panel.grid.major = element_line(colour = "#f0f0f0",size = .1)) + 
-  geom_jitter(width = 1.5, height = 1.5,color = "#fe9929",alpha = .6)
+  geom_jitter(width = 1.5, height = 1.5,alpha = .6)
 
 ggplotly(gg_umap, tooltip = "text") %>%
             config(displayModeBar = F)
 ```
 
 
+```{r}
+# Extract Nearest Neigbor Data
+beer_nn_data <- cbind(beer_data %>% select("Brand","Brand_Style"),umap_output$nn)
+umap_output$nn
+pivot_longer(beer_nn_data,
+             cols = starts_with("euclidean."),
+             names_to = c("Neighbor_IDX","Dist"),
+             names_pattern = "????")
+
+```
 
 
 
